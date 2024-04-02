@@ -1,0 +1,46 @@
+# 创建临时放置导出的备份文件的目录
+- name: Create directory
+  ansible.builtin.file:
+    path: "{{ temporary_store_directory }}"
+    state: directory
+# 确保 minio 对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+# 删除上次备份的文件
+- name: Clear last backup
+  command: "mc rm --recursive --force {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+# 确保 minio 对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+
+# 先关闭程序，todo 可以在 var 中指定要关闭的
+- name: Stop related service with systemd
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+  loop: "{{ systemdservice_name_list }}"
+# 先导出要备份的内容
+- name: Backup files
+  become: true
+  command: "tar -J -c -f {{ temporary_store_directory }}/imagebed_bak_{{ backup_date }}.tar.xz {{ excluded_directory }} {{ imagebed_directory }}"
+# 再开启程序
+- name: Start related service with systemd
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ systemdservice_name_list }}"
+
+- name: Change owner
+  become: true
+  file:
+    path: "{{ temporary_store_directory }}"
+    owner: "{{ansible_env.USER}}"
+    recurse: yes
+
+# 上传导出文件到 minio
+- name: Upload backup files to minio server
+  command: "mc cp --recursive {{ temporary_store_directory }}/ {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+  notify:
+    - Remove backup files on remote

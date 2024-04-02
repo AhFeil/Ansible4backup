@@ -1,0 +1,52 @@
+# 创建临时放置导出的备份文件的目录
+- name: Create directory
+  ansible.builtin.file:
+    path: "{{ temporary_store_directory }}"
+    state: directory
+# 确保 minio 对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+# 删除上次备份的文件，会把文件夹也删了
+- name: Clear last backup
+  command: "mc rm --recursive --force {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+# 重建对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+
+
+# 开启维护模式
+- name: Create .maintenance file with PHP content
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ wordpress_directory }}/.maintenance"
+    content: |
+      <?php $upgrading = time(); ?>
+# 导出要备份的内容。读、增加不影响 tar 的打包，但是删除和修改可能会让 tar 报错
+- name: Backup MySQL database
+  ansible.builtin.shell:
+    cmd: "mysqldump -u {{ mysql_user }} --password={{ mysql_password }} {{ mysql_dbname }} > {{ temporary_store_directory }}/dump.sql"
+- name: Backup wordpress files
+  become: true
+  ansible.builtin.shell:
+    cmd: "tar -J -cf {{ temporary_store_directory }}/wordpress.tar.xz {{ wordpress_directory }} -p"
+# 关闭维护模式
+- name: Ensure .maintenance does not exist
+  become: true
+  ansible.builtin.file:
+    path: "{{ wordpress_directory }}/.maintenance"
+    state: absent
+
+
+# 将导出文件改变用户
+- name: Change owner
+  become: true
+  file:
+    path: "{{ temporary_store_directory }}"
+    owner: "{{ansible_env.USER}}"
+    recurse: yes
+
+# 上传导出文件到 minio
+- name: Upload backup files to minio server
+  command: "mc cp --recursive {{ temporary_store_directory }}/ {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+  notify:
+    - Remove backup files on remote

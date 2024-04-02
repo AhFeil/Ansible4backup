@@ -1,0 +1,21 @@
+backup_hosts:
+  vars:
+    # backup_hosts 下所有机器共用的变量
+    backup_date: "{{ lookup('pipe', 'date +%Y%m%d') }}"   # 备份日期，每个备份最后生成的文件，都会包含这个日期
+    minio_alias: ansible4bak   # 被控端上，mc 保存备份文件的服务端的别名
+    bucket_name: backup        # minio 服务端保存备份文件的 bucket 名称，必须先手动创建
+  hosts:
+    MatrixServer:
+      ansible_host: <MatrixServer_IP>
+      ansible_port: <MatrixServer_Port>
+      ansible_user: <your_username>
+      ansible_become_method: sudo
+      ansible_become_password: <your_password>
+    TechniqueServer:
+      ansible_host: <TechniqueServer_IP>
+      ansible_port: <TechniqueServer_Port>
+      ansible_user: <your_username>
+      ansible_become_method: sudo
+      ansible_become_password: <your_password>
+    # 如果还有机器，就接着往下填
+

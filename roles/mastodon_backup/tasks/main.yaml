@@ -1,0 +1,62 @@
+# 创建临时放置导出的备份文件的目录
+- name: Create directory
+  ansible.builtin.file:
+    path: "{{ temporary_store_directory }}"
+    state: directory
+# 确保 minio 对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+# 删除上次备份的文件，todo 万一失败了，上次的也不在了
+- name: Clear last backup
+  command: "mc rm --recursive --force {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+# 确保 minio 对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+
+
+# 先关闭程序，todo 可以在 var 中指定要关闭的
+- name: Stop related service with systemd
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+  loop:
+    - mastodon-sidekiq
+    - mastodon-web
+
+# 先导出要备份的内容
+- name: Backup PostgreSQL database
+  become: true
+  command: "sudo -u mastodon pg_dump -Fc mastodon_production -f /home/mastodon/database_bak_mastodon_{{ backup_date }}.dump"
+- name: Backup media files
+  become: true
+  command: "sudo -u mastodon tar -J -c -f /home/mastodon/media_bak_mastodon_{{ backup_date }}.tar.xz /home/mastodon/live/public/system -p"
+
+
+# 再开启程序
+- name: Start related service with systemd
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+  loop:
+    - mastodon-sidekiq
+    - mastodon-web
+
+
+# 将导出文件，统一放置到 /tmp 下的对应目录
+- name: Move Backup files to it
+  become: true
+  command: "mv /home/mastodon/database_bak_mastodon_{{ backup_date }}.dump /home/mastodon/media_bak_mastodon_{{ backup_date }}.tar.xz {{ temporary_store_directory }}"
+- name: Change owner
+  become: true
+  file:
+    path: "{{ temporary_store_directory }}"
+    owner: "{{ansible_env.USER}}"
+    recurse: yes
+
+# 上传导出文件到 minio
+- name: Upload backup files to minio server
+  command: "mc cp --recursive {{ temporary_store_directory }} {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+  notify:
+    - Remove backup files on remote

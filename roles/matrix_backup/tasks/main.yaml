@@ -1,0 +1,43 @@
+# 创建临时放置导出的备份文件的目录
+- name: Create directory
+  ansible.builtin.file:
+    path: "{{ temporary_store_directory }}"
+    state: directory
+# 确保 minio 对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+# 删除上次备份的文件
+- name: Clear last backup
+  command: "mc rm --recursive --force {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+# 确保 minio 对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+
+
+
+# 导出要备份的内容
+- name: Backup PostgreSQL database
+  become: true
+  ansible.builtin.shell:
+    cmd: "docker exec --env-file=/matrix/postgres/env-postgres-psql matrix-postgres /usr/local/bin/pg_dumpall -h matrix-postgres | gzip -c > /matrix/postgres_{{ backup_date }}.sql.gz"
+- name: Backup media files
+  become: true
+  ansible.builtin.shell:
+    cmd: "tar -J -cv -f /matrix/media_bak_matrix_{{ backup_date }}.tar.xz /matrix/synapse/storage/media-store -p"
+
+# 将导出文件，统一放置到 /tmp 下的对应目录
+- name: Move Backup files to it
+  become: true
+  command: "mv /matrix/postgres_{{ backup_date }}.sql.gz /matrix/media_bak_matrix_{{ backup_date }}.tar.xz {{ temporary_store_directory }}"
+- name: Change owner
+  become: true
+  file:
+    path: "{{ temporary_store_directory }}"
+    owner: "{{ansible_env.USER}}"
+    recurse: yes
+
+# 上传导出文件到 minio
+- name: Upload backup files to minio server
+  command: "mc cp --recursive {{ temporary_store_directory }} {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+  notify:
+    - Remove backup files on remote

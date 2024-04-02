@@ -1,0 +1,46 @@
+# 创建临时放置导出的备份文件的目录
+- name: Create directory
+  ansible.builtin.file:
+    path: "{{ temporary_store_directory }}"
+    state: directory
+# 确保 minio 对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+# 删除上次备份的文件，会把文件夹也删了
+- name: Clear last backup
+  command: "mc rm --recursive --force {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+# 重建对应目录存在
+- name: Ensure backup directory exists
+  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
+
+
+- name: make nextcloud maintain mode on
+  become: true
+  command: "sudo -u www-data php {{ nextcloud_directory }}/occ maintenance:mode --on"
+
+# 导出要备份的内容。读、增加不影响 tar 的打包，但是删除和修改可能会让 tar 报错
+- name: Backup MySQL database
+  ansible.builtin.shell:
+    cmd: "mysqldump --single-transaction --default-character-set=utf8 -u {{ mysql_user }} --password={{ mysql_password }} {{ mysql_dbname }} > {{ temporary_store_directory }}/nextcloud-dump.sql"
+- name: Backup wordpress files
+  become: true
+  ansible.builtin.shell:
+    cmd: "tar -J -cf {{ temporary_store_directory }}/nextcloud.tar.xz {{ nextcloud_directory }} -p"
+
+- name: make nextcloud maintain mode off
+  become: true
+  command: "sudo -u www-data php {{ nextcloud_directory }}/occ maintenance:mode --off"
+
+# 将导出文件，统一放置到 /tmp 下的对应目录
+- name: Change owner
+  become: true
+  file:
+    path: "{{ temporary_store_directory }}"
+    owner: "{{ansible_env.USER}}"
+    recurse: yes
+
+# 上传导出文件到 minio
+- name: Upload backup files to minio server
+  command: "mc cp --recursive {{ temporary_store_directory }}/ {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+  notify:
+    - Remove backup files on remote

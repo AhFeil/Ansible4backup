@@ -1,0 +1,41 @@
+---
+# 检查 `large_directory` 变量是否定义，如果没有定义，跳过剩余的任务。
+- name: Check if large_directory variable is defined
+  meta: end_play
+  when: large_directory is not defined or large_directory is none
+
+# 检查 `large_directory` 是否存在，使用 `stat` 模块检查目录是否存在，并将结果注册到一个变量中
+- name: Check if large_directory exists
+  become: true
+  stat:
+    path: "{{ large_directory }}"
+  register: large_dir_stat
+
+- name: Skip remaining tasks if large_directory does not exist
+  meta: end_play
+  when: not large_dir_stat.stat.exists
+
+- name: Get size of large_directory
+  become: true
+  shell: "du -s {{ large_directory }} | cut -f1"
+  register: large_dir_size
+  changed_when: False
+
+- name: Create directory
+  ansible.builtin.file:
+    path: "{{ temporary_store_directory }}"
+    state: directory
+- name: Get available disk space in temporary_store_directory
+  become: true
+  shell: "df {{ temporary_store_directory }} | awk 'NR==2{print $4}'"
+  register: temp_store_avail_space
+  changed_when: False
+
+# 比较目录大小和可用空间，如果 `large_directory` 的大小超过 `temporary_store_directory` 所在硬盘的剩余空间，则任务失败并显示一条警告消息。
+- name: Compare directory size and available space
+  fail:
+    msg: "Not enough space in temporary_store_directory for large_directory."
+  when: large_dir_size.stdout | int > temp_store_avail_space.stdout | int
+- name: Print the value of variables
+  debug:
+    msg: "The {{ large_directory }} occupies {{ large_dir_size.stdout | int }} of disk space, the disk where {{ temporary_store_directory }} is located has {{ temp_store_avail_space.stdout | int }} of free space."    

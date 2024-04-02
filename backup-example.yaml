@@ -1,0 +1,39 @@
+# 备份 Matrix 的任务
+- name: Backup Matrix   # 这个任务的名称
+  tags:                 # 这个任务有哪些标签，方便指定执行
+    - backup_matrix
+  hosts: MatrixServer   # 这个任务的机器是哪台
+  vars:                 # 这个任务的变量
+    large_directory: /matrix/synapse/storage/media-store
+    temporary_store_directory: /tmp/matrix_bak/   # 暂时必须带 /
+    specify_directory_in_bucket: MatrixServer
+  roles:                # 按顺序，让角色们行动：先检查空间，再确保 mc 安装以及配置了服务端，最后执行备份
+    - check_storage_space
+    - my_minio_client_role
+    - matrix_backup
+  tasks:                # 另外的边角任务，删除机器上 mc 的服务端的配置信息，保证安全
+    - name: delete mc config
+      shell: "mc alias rm {{ minio_alias }}"
+
+# 备份 技焉洲 WordPress 的任务
+- name: Backup Technique
+  tags: 
+    - backup_technique
+  hosts: TechniqueServer
+  vars:
+    temporary_store_directory: /tmp/technique_bak   # 不能带 /
+    specify_directory_in_bucket: TechniqueServer
+    systemdservice_name_list: [lsws]
+    mysql_user: wp_user
+    mysql_password: password
+    mysql_dbname: wp_db
+    wordpress_directory: /usr/local/lsws/wordpress
+    large_directory: "{{ wordpress_directory }}"
+  roles:
+    - check_storage_space
+    - my_minio_client_role
+    - wordpress_backup
+  tasks:
+    - name: delete mc config
+      shell: "mc alias rm {{ minio_alias }}"
+
