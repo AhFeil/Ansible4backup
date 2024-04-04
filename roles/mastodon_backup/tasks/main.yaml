@@ -1,3 +1,5 @@
+# 由于不再维护自建的 mastodon，这个 role 不再维护
+
 # 创建临时放置导出的备份文件的目录
 - name: Create directory
   ansible.builtin.file:
