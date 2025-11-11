@@ -42,7 +42,7 @@ mkdir -p ~/pythonServe/ && cd ~/pythonServe/
 ```
 
 ```sh
-git clone https://git.ahfei.blog/ahfei/Ansible4backup && cd Ansible4backup
+git clone https://github.com/AhFeil/Ansible4backup.git && cd Ansible4backup
 ```
 
 ```sh
@@ -200,6 +200,12 @@ ssh -p 22 username@1.2.3.4
 ## playbook
 
 
+创建 minio 的信息
+
+```sh
+mkdir roles/my_minio_client_role/vars
+vim roles/my_minio_client_role/vars/main.yml
+```
 
 
 ### 创建剧本
