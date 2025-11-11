@@ -511,10 +511,6 @@ ansible-playbook -i inventory.yaml backup.yaml --tags=backup_nextcloud --check
 ## 调用 API 执行备份
 
 
-```sh
-sudo ufw allow 5123 comment ansible_api
-```
-
 运行
 
 

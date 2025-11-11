@@ -1,3 +1,5 @@
 ansible
 argcomplete
-Flask
+fastapi
+uvicorn
+uvloop
