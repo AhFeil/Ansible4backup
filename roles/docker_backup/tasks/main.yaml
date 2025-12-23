@@ -24,7 +24,7 @@
 # 先导出要备份的内容
 - name: Backup files
   become: true
-  command: "tar -J -c -f {{ temporary_store_directory }}/{{ backup_file_name_prefix }}_{{ backup_date }}.tar.xz {{ container_directory }}"
+  command: "tar -zc -f {{ temporary_store_directory }}/{{ backup_file_name_prefix }}_{{ backup_date }}.tar.gz {{ container_directory }}"
 
 # 再开启程序
 - name: Ensure related container is started
