@@ -1,0 +1,21 @@
+# 安装或更新 Xray 到 Vrm
+- name: Install Xray to vrm   # 这个任务的名称
+  tags:                 # 这个任务有哪些标签，方便指定执行
+    - install_xray_to_vrm
+  hosts: VrmServer   # 这个任务的机器是哪台
+  vars:                 # 这个任务的变量
+    xray_version: "v25.12.8"
+    xray_platform: "linux-64"
+  roles:                # 按顺序，让角色们行动
+    - xray
+
+- name: Update Xray
+  tags:
+    - update_xray
+  hosts:
+    - VrmServer
+  vars:
+    xray_version: ""
+    xray_platform: "linux-64"
+  roles:
+    - xray

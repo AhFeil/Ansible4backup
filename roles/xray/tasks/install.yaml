@@ -1,0 +1,119 @@
+# 如果没有指定版本，则通过网络获取最新的版本号
+- name: Check if xray_version is already set and non-empty
+  set_fact:
+    xray_version_already_valid: "{{ (xray_version is defined) and (xray_version | trim != '') }}"
+  run_once: true
+
+- name: Fetch latest release info from GitHub API
+  uri:
+    url: https://api.github.com/repos/XTLS/Xray-core/releases/latest
+    method: GET
+    return_content: yes
+    headers:
+      Accept: application/vnd.github.v3+json
+      User-Agent: ansible
+  register: github_release
+  when: not xray_version_already_valid
+
+- name: Set xray_version from GitHub tag_name
+  set_fact:
+    xray_version: "{{ github_release.json.tag_name | trim }}"
+  when: not xray_version_already_valid
+
+- name: Display final xray_version
+  debug:
+    msg: "Using Xray-core version: {{ xray_version }}"
+
+
+# 获取当前已安装的版本号
+- name: Get Xray version output
+  ansible.builtin.shell: /usr/local/bin/xray --version | grep -oP 'Xray \K\d+\.\d+\.\d+'
+  register: xray_version_info
+  failed_when: false
+
+- name: Check if xray_version is already set and non-empty
+  set_fact:
+    xray_version_current: "v{{ xray_version_info.stdout| trim }}"
+
+- name: Display current xray_version
+  debug:
+    msg: "Current Xray-core version: {{ xray_version_current }}"
+
+- name: Get release, unpack, install, clean up
+  vars:
+    xray_filename: "Xray-{{ xray_platform }}.zip"
+    xray_tmp_filename: "/tmp/{{ xray_filename }}"
+    xray_tmp_unzip: "/tmp/Xray"
+  when: (xray_version_current is not defined) or (xray_version_current != xray_version)
+  block:
+    - name: Ensure unzip is installed
+      become: true
+      ansible.builtin.package:
+        name: unzip
+        state: present
+
+    - name: Create Xray directories
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /usr/local/share/xray
+        - /usr/local/etc/xray/
+        - /var/log/xray
+
+    - name: Create Unzip directory
+      ansible.builtin.file:
+        path: "{{ xray_tmp_unzip }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download Xray binaries
+      ansible.builtin.get_url:
+        url: "https://github.com/XTLS/Xray-core/releases/download/{{ xray_version }}/{{ xray_filename }}"
+        dest: "{{ xray_tmp_filename }}"
+        mode: '0644'
+
+    - name: Unzip Xray binaries
+      ansible.builtin.unarchive:
+        src: "{{ xray_tmp_filename }}"
+        dest: "{{ xray_tmp_unzip }}"
+        mode: '0755'
+        remote_src: true
+
+    # 移动文件
+    - name: Copy xray binary to target directory
+      become: true
+      ansible.builtin.copy:
+        src: "{{ xray_tmp_unzip }}/xray"
+        dest: /usr/local/bin/
+        remote_src: yes
+        mode: '0755'
+
+    - name: Find .dat files
+      ansible.builtin.find:
+        paths: "{{ xray_tmp_unzip }}"
+        patterns: "*.dat"
+        file_type: file
+      register: dat_files
+
+    - name: Copy .dat files to target directory
+      become: true
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: /usr/local/share/xray/
+        remote_src: yes
+        mode: '0644'
+      loop: "{{ dat_files.files }}"
+
+    # 删除文件和解压目录
+    - name: Cleanup downloaded zip
+      ansible.builtin.file:
+        path: "{{ xray_tmp_filename }}"
+        state: absent
+
+    - name: Remove directory
+      ansible.builtin.file:
+        path: "{{ xray_tmp_unzip }}"
+        state: absent

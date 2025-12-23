@@ -4,6 +4,7 @@
 # mine
 backup.yaml
 inventory.yaml
+xray.yaml
 roles/my_minio_client_role/vars/main.yml
 
 # ---> Python
