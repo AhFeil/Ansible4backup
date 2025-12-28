@@ -19,17 +19,16 @@
 # 导出要备份的内容。读、增加不影响 tar 的打包，但是删除和修改可能会让 tar 报错
 - name: Backup MySQL database
   ansible.builtin.shell:
-    cmd: "mysqldump --single-transaction --default-character-set=utf8 -u {{ mysql_user }} --password={{ mysql_password }} {{ mysql_dbname }} > {{ temporary_store_directory }}/nextcloud-dump.sql"
+    cmd: "mysqldump --single-transaction --default-character-set=utf8 -u {{ mysql_user }} --password={{ mysql_password }} {{ mysql_dbname }} > {{ temporary_store_directory }}/{{ backup_date }}_nextcloud-dump.sql"
 - name: Backup wordpress files
   become: true
   ansible.builtin.shell:
-    cmd: "tar -J -cf {{ temporary_store_directory }}/nextcloud.tar.xz {{ nextcloud_directory }} -p"
+    cmd: "tar -zc -f {{ temporary_store_directory }}/{{ backup_date }}_nextcloud.tar.gz {{ nextcloud_directory }} -p"
 
 - name: make nextcloud maintain mode off
   become: true
   command: "sudo -u www-data php {{ nextcloud_directory }}/occ maintenance:mode --off"
 
-# 将导出文件，统一放置到 /tmp 下的对应目录
 - name: Change owner
   become: true
   file:

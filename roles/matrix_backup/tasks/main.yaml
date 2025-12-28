@@ -16,16 +16,16 @@
 - name: Backup PostgreSQL database
   become: true
   ansible.builtin.shell:
-    cmd: "docker exec --env-file=/matrix/postgres/env-postgres-psql matrix-postgres /usr/local/bin/pg_dumpall -h matrix-postgres | gzip -c > /matrix/postgres_{{ backup_date }}.sql.gz"
+    cmd: "docker exec --env-file=/matrix/postgres/env-postgres-psql matrix-postgres /usr/local/bin/pg_dumpall -h matrix-postgres | gzip -c > /matrix/{{ backup_date }}_postgres.sql.gz"
 - name: Backup media files
   become: true
   ansible.builtin.shell:
-    cmd: "tar -J -cv -f /matrix/media_bak_matrix_{{ backup_date }}.tar.xz /matrix/synapse/storage/media-store -p"
+    cmd: "tar -zc -f /matrix/{{ backup_date }}_media_bak_matrix.tar.gz /matrix/synapse/storage/media-store -p"
 
 # 将导出文件，统一放置到 /tmp 下的对应目录
 - name: Move Backup files to it
   become: true
-  command: "mv /matrix/postgres_{{ backup_date }}.sql.gz /matrix/media_bak_matrix_{{ backup_date }}.tar.xz {{ temporary_store_directory }}"
+  command: "mv /matrix/{{ backup_date }}_postgres.sql.gz /matrix/{{ backup_date }}_media_bak_matrix.tar.gz {{ temporary_store_directory }}"
 - name: Change owner
   become: true
   file:

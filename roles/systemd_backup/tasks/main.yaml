@@ -22,7 +22,7 @@
 # 先导出要备份的内容
 - name: Backup files
   become: true
-  command: "tar -cJf {{ temporary_store_directory }}/{{backup_file_name_prefix}}_{{ backup_date }}.tar.xz {{ excluded_directory }} {{ need_bak_directory }}"
+  command: "tar -zc -f {{ temporary_store_directory }}/{{backup_file_name_prefix}}_{{ backup_date }}.tar.gz {{ excluded_directory }} {{ need_bak_directory }}"
 # 再开启程序
 - name: Start related service with systemd
   become: true

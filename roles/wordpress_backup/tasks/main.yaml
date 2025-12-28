@@ -22,11 +22,11 @@
 # 导出要备份的内容。读、增加不影响 tar 的打包，但是删除和修改可能会让 tar 报错
 - name: Backup MySQL database
   ansible.builtin.shell:
-    cmd: "mysqldump -u {{ mysql_user }} --password={{ mysql_password }} {{ mysql_dbname }} > {{ temporary_store_directory }}/dump.sql"
+    cmd: "mysqldump -u {{ mysql_user }} --password={{ mysql_password }} {{ mysql_dbname }} > {{ temporary_store_directory }}/{{ backup_date }}_dump.sql"
 - name: Backup wordpress files
   become: true
   ansible.builtin.shell:
-    cmd: "tar -J -cf {{ temporary_store_directory }}/wordpress.tar.xz {{ wordpress_directory }} -p"
+    cmd: "tar -zc -f {{ temporary_store_directory }}/{{ backup_date }}_wordpress.tar.gz {{ wordpress_directory }} -p"
 # 关闭维护模式
 - name: Ensure .maintenance does not exist
   become: true
