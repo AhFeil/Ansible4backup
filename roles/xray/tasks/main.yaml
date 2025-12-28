@@ -1,6 +1,6 @@
 ---
 - name: Install Xray
-  ansible.builtin.include_tasks: install.yaml
+  ansible.builtin.import_tasks: install.yaml
 
 - name: Update systemd service config
   become: true

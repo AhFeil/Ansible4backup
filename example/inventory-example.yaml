@@ -4,6 +4,7 @@ backup_hosts:
     backup_date: "{{ lookup('pipe', 'date +%Y%m%d') }}"   # 备份日期，每个备份最后生成的文件，都会包含这个日期
     minio_alias: ansible4bak   # 被控端上，mc 保存备份文件的服务端的别名
     bucket_name: backup        # minio 服务端保存备份文件的 bucket 名称，必须先手动创建
+    max_backups: 3
   hosts:
     MatrixServer:
       ansible_host: <MatrixServer_IP>

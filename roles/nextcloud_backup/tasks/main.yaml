@@ -1,18 +1,16 @@
+- name: check storage space
+  ansible.builtin.import_tasks: ../../check_storage_space/tasks/main.yaml
+- name: set up minio
+  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/main.yaml
+- name: Ensure minio directory exists
+  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/check.yaml
+
+
 # 创建临时放置导出的备份文件的目录
 - name: Create directory
   ansible.builtin.file:
     path: "{{ temporary_store_directory }}"
     state: directory
-# 确保 minio 对应目录存在
-- name: Ensure backup directory exists
-  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
-# 删除上次备份的文件，会把文件夹也删了
-- name: Clear last backup
-  command: "mc rm --recursive --force {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
-# 重建对应目录存在
-- name: Ensure backup directory exists
-  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
-
 
 - name: make nextcloud maintain mode on
   become: true
@@ -44,3 +42,6 @@
   command: "mc cp --recursive {{ temporary_store_directory }}/ {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
   notify:
     - Remove backup files on remote
+
+- name: clear backups
+  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/clear.yaml
