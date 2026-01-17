@@ -38,7 +38,7 @@
 
 # 上传导出文件到 minio
 - name: Upload backup files via rclone
-  command: "/home/hoo/rclone copy {{ temporary_store_directory }}/ {{ rclone_remote_name }}/{{ backup_dir_name }}/{{ specify_directory_in_remote }}/"
+  command: "{{ ansible_env.HOME }}/.local/bin/rclone copy {{ temporary_store_directory }}/ {{ rclone_remote_name }}:{{ backup_dir_name }}/{{ specify_directory_in_remote }}/"
   notify:
     - Remove backup files on local
 
