@@ -147,7 +147,7 @@
   shell: >
     {{ ansible_env.HOME }}/.local/bin/rclone config create {{ rclone_crypt_remote_name }} crypt
     remote={{ rclone_remote_name }}:{{ rclone_crypt_dir_name }}
-    filename_encryption=standard
+    filename_encryption=off
     directory_name_encryption=false
     password={{ rclone_crypt_password }}
     password2={{ rclone_crypt_salt }}
