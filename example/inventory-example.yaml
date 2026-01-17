@@ -8,6 +8,8 @@ backup_hosts:
     rclone_webdav_user: ""
     rclone_webdav_password: ""
     rclone_webdav_vendor: other
+    rclone_crypt_password: ""
+    rclone_crypt_salt: ""
     minio_alias: ansible4bak   # 被控端上，mc 保存备份文件的服务端的别名
     bucket_name: backup        # minio 服务端保存备份文件的 bucket 名称，必须先手动创建
     max_backups: 3
@@ -25,4 +27,3 @@ backup_hosts:
       ansible_become_method: sudo
       ansible_become_password: <your_password>
     # 如果还有机器，就接着往下填
-

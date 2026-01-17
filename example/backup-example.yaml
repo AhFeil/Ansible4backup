@@ -45,5 +45,6 @@
     specify_directory_in_remote: ImagebedServer
     systemdservice_name_list: [minio]
     large_directory: "{{ need_bak_directory }}"   # 如果存在，则比较硬盘剩余空间与该目录大小
+    in_encryption: true
   roles:
     - imgbed_backup

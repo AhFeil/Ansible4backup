@@ -114,3 +114,43 @@
   register: rclone_test
   failed_when: rclone_test.rc != 0
   when: rclone_installed.stat.exists
+
+# ===============================
+# 9. 创建 crypt remote（幂等）
+# ===============================
+- name: Fail if encryption is enabled but crypt secrets are missing
+  fail:
+    msg: >
+      Encryption is enabled (in_encryption=true),
+      but rclone_crypt_password or rclone_crypt_salt is not set.
+  when:
+    - in_encryption | default(false) | bool
+    - rclone_crypt_password is not defined
+      or rclone_crypt_password | length == 0
+      or rclone_crypt_salt is not defined
+      or rclone_crypt_salt | length == 0
+
+- name: Set rclone crypt variables
+  set_fact:
+    rclone_crypt_dir_name: "encrypted_{{ backup_dir_name }}"
+    rclone_crypt_remote_name: "crypt_{{ rclone_remote_name }}"
+
+- name: Select final rclone target remote
+  set_fact:
+    rclone_target_remote: >-
+      {{
+        (in_encryption | default(false) | bool)
+        | ternary(rclone_crypt_remote_name, rclone_remote_name)
+      }}
+
+- name: Configure rclone crypt remote
+  shell: >
+    {{ ansible_env.HOME }}/.local/bin/rclone config create {{ rclone_crypt_remote_name }} crypt
+    remote={{ rclone_remote_name }}:{{ rclone_crypt_dir_name }}
+    filename_encryption=standard
+    directory_name_encryption=false
+    password={{ rclone_crypt_password }}
+    password2={{ rclone_crypt_salt }}
+  when:
+    - in_encryption | default(false) | bool
+    - rclone_crypt_remote_name ~ ':' not in rclone_remotes.stdout

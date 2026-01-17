@@ -2,7 +2,7 @@
 - name: List all backup files in rclone remote directory
   command: >
     {{ ansible_env.HOME }}/.local/bin/rclone lsf
-    {{ rclone_remote_name }}:{{ backup_dir_name }}/{{ specify_directory_in_remote }}/
+    {{ rclone_target_remote }}:{{ backup_dir_name }}/{{ specify_directory_in_remote }}/
   register: rclone_files
   changed_when: false
   failed_when: false
@@ -18,6 +18,6 @@
 - name: Remove oldest backup files from rclone remote
   command: >
     {{ ansible_env.HOME }}/.local/bin/rclone deletefile
-    {{ rclone_remote_name }}:{{ backup_dir_name }}/{{ specify_directory_in_remote }}/{{ item }}
+    {{ rclone_target_remote }}:{{ backup_dir_name }}/{{ specify_directory_in_remote }}/{{ item }}
   loop: "{{ sorted_backups[max_backups:] }}"
   when: sorted_backups | length > max_backups
