@@ -2,6 +2,12 @@ backup_hosts:
   vars:
     # backup_hosts 下所有机器共用的变量
     backup_date: "{{ lookup('pipe', 'date +%Y%m%d') }}"   # 备份日期，每个备份最后生成的文件，都会包含这个日期
+    backup_dir_name: backup
+    rclone_remote_name: remote_webdav
+    rclone_webdav_url: ""
+    rclone_webdav_user: ""
+    rclone_webdav_password: ""
+    rclone_webdav_vendor: other
     minio_alias: ansible4bak   # 被控端上，mc 保存备份文件的服务端的别名
     bucket_name: backup        # minio 服务端保存备份文件的 bucket 名称，必须先手动创建
     max_backups: 3

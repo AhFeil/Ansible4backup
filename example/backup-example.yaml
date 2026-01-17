@@ -7,9 +7,7 @@
     large_directory: /matrix/synapse/storage/media-store
     temporary_store_directory: /tmp/matrix_bak/   # 暂时必须带 /
     specify_directory_in_bucket: MatrixServer
-  roles:                # 按顺序，让角色们行动：先检查空间，再确保 mc 安装以及配置了服务端，最后执行备份
-    - check_storage_space
-    - my_minio_client_role
+  roles:                # 按顺序，让角色们行动
     - matrix_backup
   tasks:                # 另外的边角任务，删除机器上 mc 的服务端的配置信息，保证安全
     - name: delete mc config
@@ -30,10 +28,22 @@
     wordpress_directory: /usr/local/lsws/wordpress
     large_directory: "{{ wordpress_directory }}"
   roles:
-    - check_storage_space
-    - my_minio_client_role
     - wordpress_backup
   tasks:
     - name: delete mc config
       shell: "mc alias rm {{ minio_alias }}"
 
+- name: Backup Imagebed
+  tags: 
+    - backup_imagebed
+  hosts: TechniqueServer
+  vars:
+    backup_file_name_prefix: imagebed_bak
+    temporary_store_directory: /tmp/imagebed_bak   # 不能带 /
+    need_bak_directory: /mnt/minio
+    excluded_directory: --exclude=/mnt/minio/upload # 目前只会这样，以后完善
+    specify_directory_in_remote: ImagebedServer
+    systemdservice_name_list: [minio]
+    large_directory: "{{ need_bak_directory }}"   # 如果存在，则比较硬盘剩余空间与该目录大小
+  roles:
+    - imgbed_backup
