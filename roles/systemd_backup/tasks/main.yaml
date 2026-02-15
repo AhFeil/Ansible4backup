@@ -1,9 +1,7 @@
 - name: check storage space
   ansible.builtin.import_tasks: ../../check_storage_space/tasks/main.yaml
-- name: set up minio
-  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/main.yaml
-- name: Ensure minio directory exists
-  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/check.yaml
+- name: set up rclone
+  ansible.builtin.import_tasks: ../../my_rclone_client_role/tasks/main.yaml
 
 
 # 创建临时放置导出的备份文件的目录
@@ -19,7 +17,7 @@
     name: "{{ item }}"
     state: stopped
   loop: "{{ systemdservice_name_list }}"
-# 先导出要备份的内容
+# 导出要备份的内容
 - name: Backup files
   become: true
   command: "tar -zc -f {{ temporary_store_directory }}/{{backup_file_name_prefix}}_{{ backup_date }}.tar.gz {{ excluded_directory }} {{ need_bak_directory }}"
@@ -38,11 +36,11 @@
     owner: "{{ansible_env.USER}}"
     recurse: yes
 
-# 上传导出文件到 minio
-- name: Upload backup files to minio server
-  command: "mc cp --recursive {{ temporary_store_directory }}/ {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+# 通过 rclone 上传导出文件
+- name: Upload backup files via rclone
+  command: "{{ ansible_env.HOME }}/.local/bin/rclone copy {{ temporary_store_directory }}/ {{ rclone_target_remote }}:{{ backup_dir_name }}/{{ specify_directory_in_remote }}/"
   notify:
-    - Remove backup files on remote
+    - Remove backup files on local
 
 - name: clear backups
-  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/clear.yaml
+  ansible.builtin.import_tasks: ../../my_rclone_client_role/tasks/clear.yaml

@@ -42,7 +42,7 @@ mkdir -p ~/pythonServe/ && cd ~/pythonServe/
 ```
 
 ```sh
-git clone https://git.ahfei.blog/ahfei/Ansible4backup && cd Ansible4backup
+git clone https://github.com/AhFeil/Ansible4backup.git && cd Ansible4backup
 ```
 
 ```sh
@@ -303,7 +303,7 @@ vim backup.yaml
   vars:
     large_directory: /matrix/synapse/storage/media-store   # 如果存在，则比较硬盘剩余空间与该目录大小
     temporary_store_directory: /tmp/matrix_bak/   # 必须带 /
-    specify_directory_in_bucket: MatrixServer
+    specify_directory_in_remote: MatrixServer
   roles:
     - check_storage_space
     - my_minio_client_role
@@ -352,7 +352,7 @@ vim backup.yaml
     temporary_store_directory: /tmp/imagebed_bak   # 不能带 /
     imagebed_directory: /mnt/minio
     excluded_directory: --exclude=/mnt/minio/updatefetch --exclude=/mnt/minio/upload # 目前只会这样，以后完善
-    specify_directory_in_bucket: ImagebedServer
+    specify_directory_in_remote: ImagebedServer
     systemdservice_name_list: [minio]
     large_directory: "{{ imagebed_directory }}"
   roles:
@@ -399,7 +399,7 @@ Docker 版的 WordPress
   vars:
     backup_file_name_prefix: wordpress_flight_borne_bak
     temporary_store_directory: /tmp/flight_borne_bak   # 不能带 /
-    specify_directory_in_bucket: FlightBorneServer
+    specify_directory_in_remote: FlightBorneServer
     container_name_list: [wordpress, wp_mysql, wp_redis]
     container_directory: "{{ ansible_env.HOME }}/myserve/wordpress"
     large_directory: "{{ container_directory }}"
@@ -414,50 +414,6 @@ Docker 版的 WordPress
 
 ```bash
 ansible-playbook -i inventory.yaml backup.yaml --tags=backup_flight_borne --check
-```
-
-
-
-### WordPress
-
-原生安装的，使用 MySQL 系的数据库。
-
-备份前会开启维护模式。
-
-WordPress 备份的内容只有两个，一个网页目录，还有数据库的备份。因此需要提供目录路径和数据库的用户、密码、数据库名称。
-
-
-*在 playbook 中调用 role*
-
-```sh
-vim backup.yaml
-```
-
-```yml
-- name: Backup Technique
-  tags: 
-    - backup_technique
-  hosts: TechniqueServer
-  vars:
-    temporary_store_directory: /tmp/technique_bak   # 不能带 /
-    specify_directory_in_bucket: TechniqueServer
-    systemdservice_name_list: [lsws]
-    mysql_user: wp_user
-    mysql_password: password
-    mysql_dbname: wp_db
-    wordpress_directory: /usr/local/lsws/wordpress
-    large_directory: "{{ wordpress_directory }}"
-  roles:
-    - check_storage_space
-    - my_minio_client_role
-    - wordpress_backup
-  tasks:
-    - name: delete mc config
-      shell: "mc alias rm {{ minio_alias }}"
-```
-
-```bash
-ansible-playbook -i inventory.yaml backup.yaml --tags=backup_technique --check
 ```
 
 
@@ -485,7 +441,7 @@ vim backup.yaml
   hosts: NextCloudServer
   vars:
     temporary_store_directory: /tmp/nextcloud_bak   # 不能带 /
-    specify_directory_in_bucket: NextCloudServer
+    specify_directory_in_remote: NextCloudServer
     nextcloud_directory: /var/www/nextcloud.ahfei.blog
     mysql_user: nextcloud
     mysql_password: password
@@ -598,17 +554,3 @@ sudo systemctl stop ansible_api
 ```sh
 sudo systemctl start ansible_api
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-

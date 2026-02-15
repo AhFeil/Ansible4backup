@@ -1,9 +1,7 @@
 - name: check storage space
   ansible.builtin.import_tasks: ../../check_storage_space/tasks/main.yaml
-- name: set up minio
-  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/main.yaml
-- name: Ensure minio directory exists
-  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/check.yaml
+- name: set up rclone
+  ansible.builtin.import_tasks: ../../my_rclone_client_role/tasks/main.yaml
 
 
 # 创建临时放置导出的备份文件的目录
@@ -16,16 +14,12 @@
 - name: Backup PostgreSQL database
   become: true
   ansible.builtin.shell:
-    cmd: "docker exec --env-file=/matrix/postgres/env-postgres-psql matrix-postgres /usr/local/bin/pg_dumpall -h matrix-postgres | gzip -c > /matrix/{{ backup_date }}_postgres.sql.gz"
+    cmd: "docker exec --env-file=/matrix/postgres/env-postgres-psql matrix-postgres /usr/local/bin/pg_dumpall -h matrix-postgres | gzip -c > {{ temporary_store_directory }}/{{ backup_date }}_postgres.sql.gz"
 - name: Backup media files
   become: true
   ansible.builtin.shell:
-    cmd: "tar -zc -f /matrix/{{ backup_date }}_media_bak_matrix.tar.gz /matrix/synapse/storage/media-store -p"
+    cmd: "tar -zc -f {{ temporary_store_directory }}/{{ backup_date }}_media_bak_matrix.tar.gz /matrix/synapse/storage/media-store -p"
 
-# 将导出文件，统一放置到 /tmp 下的对应目录
-- name: Move Backup files to it
-  become: true
-  command: "mv /matrix/{{ backup_date }}_postgres.sql.gz /matrix/{{ backup_date }}_media_bak_matrix.tar.gz {{ temporary_store_directory }}"
 - name: Change owner
   become: true
   file:
@@ -33,11 +27,10 @@
     owner: "{{ansible_env.USER}}"
     recurse: yes
 
-# 上传导出文件到 minio
-- name: Upload backup files to minio server
-  command: "mc cp --recursive {{ temporary_store_directory }} {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}/"
+- name: Upload backup files via rclone
+  command: "{{ ansible_env.HOME }}/.local/bin/rclone copy {{ temporary_store_directory }}/ {{ rclone_target_remote }}:{{ backup_dir_name }}/{{ specify_directory_in_remote }}/"
   notify:
-    - Remove backup files on remote
+    - Remove backup files on local
 
 - name: clear backups
-  ansible.builtin.import_tasks: ../../my_minio_client_role/tasks/clear.yaml
+  ansible.builtin.import_tasks: ../../my_rclone_client_role/tasks/clear.yaml

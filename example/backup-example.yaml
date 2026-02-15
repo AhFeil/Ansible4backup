@@ -6,7 +6,7 @@
   vars:                 # 这个任务的变量
     large_directory: /matrix/synapse/storage/media-store
     temporary_store_directory: /tmp/matrix_bak/   # 暂时必须带 /
-    specify_directory_in_bucket: MatrixServer
+    specify_directory_in_remote: MatrixServer
   roles:                # 按顺序，让角色们行动
     - matrix_backup
   tasks:                # 另外的边角任务，删除机器上 mc 的服务端的配置信息，保证安全
@@ -20,7 +20,7 @@
   hosts: TechniqueServer
   vars:
     temporary_store_directory: /tmp/technique_bak   # 不能带 /
-    specify_directory_in_bucket: TechniqueServer
+    specify_directory_in_remote: TechniqueServer
     systemdservice_name_list: [lsws]
     mysql_user: wp_user
     mysql_password: password

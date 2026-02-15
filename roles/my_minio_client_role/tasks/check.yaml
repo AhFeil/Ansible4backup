@@ -1,3 +1,0 @@
-# 确保 minio 对应目录存在
-- name: Ensure backup directory exists
-  command: "mc mb --ignore-existing {{ minio_alias }}/{{ bucket_name }}/{{ specify_directory_in_bucket }}"
