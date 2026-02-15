@@ -26,7 +26,7 @@
   docker_container:
     name: "{{ item }}"
     state: started
-  loop: "{{ container_name_list }}"
+  loop: "{{ container_name_list | reverse | list }}"
 
 
 # 将导出文件改所有者
