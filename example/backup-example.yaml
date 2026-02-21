@@ -38,13 +38,13 @@
     - backup_imagebed
   hosts: TechniqueServer
   vars:
-    backup_file_name_prefix: imagebed_bak
+    backup_file_name: imagebed_bak
     temporary_store_directory: /tmp/imagebed_bak   # 不能带 /
-    need_bak_directory: /mnt/minio
+    backup_directory: /mnt/minio
     excluded_directory: --exclude=/mnt/minio/upload # 目前只会这样，以后完善
     specify_directory_in_remote: ImagebedServer
     systemdservice_name_list: [minio]
-    large_directory: "{{ need_bak_directory }}"   # 如果存在，则比较硬盘剩余空间与该目录大小
+    large_directory: "{{ backup_directory }}"   # 如果存在，则比较硬盘剩余空间与该目录大小
     in_encryption: true
   roles:
     - imgbed_backup

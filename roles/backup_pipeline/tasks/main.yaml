@@ -1,0 +1,24 @@
+- name: Validate guard type
+  assert:
+    that:
+      - guard_type in ['docker', 'docker_compose', 'systemd', 'nextcloud']
+    fail_msg: "Unsupported guard_type"
+
+- name: Prepare temp directory
+  include_role:
+    name: prepare_temp_store_dir
+
+- name: Setup rclone
+  include_role:
+    name: my_rclone_client_role
+
+- name: Package with Select guard protection
+  include_role:
+    name: "guard_{{ guard_type }}"
+  vars:
+    guarded_role_name: package_by_tar
+
+- name: Upload and clear
+  include_role:
+    name: my_rclone_client_role
+    tasks_from: upload_then_clear

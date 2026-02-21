@@ -1,5 +1,0 @@
-# 移除导出的备份文件
-- name: Remove backup files on local
-  ansible.builtin.file:
-    dest: "{{ temporary_store_directory }}"
-    state: absent

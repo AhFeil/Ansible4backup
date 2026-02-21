@@ -1,0 +1,5 @@
+- name: Start related containers (reverse order)
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ container_name_list | reverse | list }}"

@@ -1,0 +1,24 @@
+- name: Archive files with multi-path and exclude support
+  become: true
+  ansible.builtin.shell: >
+    tar -zc -f
+    {{ temporary_store_directory }}/{{ backup_date }}_{{ backup_file_name }}.tar.gz
+    {% for e in (exclude_paths | default([])) %}
+    --exclude="{{ e }}"
+    {% endfor %}
+    {% for p in (
+         backup_directory
+         if backup_directory is iterable and backup_directory is not string
+         else [backup_directory]
+       ) %}
+    "{{ p }}"
+    {% endfor %}
+  args:
+    executable: /bin/bash
+
+- name: Change owner
+  become: true
+  file:
+    path: "{{ temporary_store_directory }}"
+    owner: "{{ansible_env.USER}}"
+    recurse: yes

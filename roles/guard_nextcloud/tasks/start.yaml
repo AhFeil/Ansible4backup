@@ -1,0 +1,3 @@
+- name: make nextcloud maintain mode off
+  become: true
+  command: "sudo -u www-data php {{ nextcloud_directory }}/occ maintenance:mode --off"

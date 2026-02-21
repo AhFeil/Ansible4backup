@@ -1,0 +1,6 @@
+- name: Stop related service with systemd
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+  loop: "{{ systemdservice_name_list }}"

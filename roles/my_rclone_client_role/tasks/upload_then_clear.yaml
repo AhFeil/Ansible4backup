@@ -1,3 +1,10 @@
+- name: Upload via rclone
+  command: >
+    {{ ansible_env.HOME }}/.local/bin/rclone copy
+    {{ temporary_store_directory }}/
+    {{ rclone_target_remote }}:{{ backup_dir_name }}/{{ specify_directory_in_remote }}/
+  notify:
+    - Remove backup files on local
 
 - name: List all backup files in rclone remote directory
   command: >

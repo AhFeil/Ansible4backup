@@ -1,0 +1,5 @@
+- name: Stop related containers
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: stopped
+  loop: "{{ container_name_list }}"

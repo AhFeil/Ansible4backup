@@ -15,12 +15,11 @@
 - backup-example.yaml，样例 playbook
 - inventory-example.yaml，样例 主机信息
 - role/
-	- check_storage_space，检查剩余空间，如果小于备份目录，则停止备份
-  - my_minio_client_role，确保被控端装有 mc，并且有设置的 MinIO 服务端配置
+	- prepare_temp_store_dir，准备临时存放备份文件的目录，检查剩余空间，如果小于备份的大小，则停止备份
+  - my_rclone_client_role，确保被控端装有 rclone，并且设置了配置
   - docker_backup，通用 Docker 程序备份
   - systemd_backup， 通用 Systemd 管理的程序备份
 	- matrix_backup，针对 [matrix-docker-ansible-deploy](https://github.com/spantaleev/matrix-docker-ansible-deploy) 这个项目编写的备份，与官方默认设置一致就能使用
-	- my_minio_client_role
 
 
 
@@ -254,19 +253,19 @@ ansible-playbook -i inventory.yaml backup.yaml --limit "MatrixServer"
 创建一个 role，需要在项目目录下的 roles 目录下新建 role 的目录。
 
 ```sh
-mkdir -p roles/check_storage_space
+mkdir -p roles/prepare_temp_store_dir
 ```
 
 然后，role 的 task 部分，应该放在 tasks 文件中
 
 ```sh
-mkdir roles/check_storage_space/tasks
+mkdir roles/prepare_temp_store_dir/tasks
 ```
 
 一般，只用创建一个 main.yaml，代码都放在里面就行
 
 ```sh
-vim roles/check_storage_space/tasks/main.yaml
+vim roles/prepare_temp_store_dir/tasks/main.yaml
 ```
 
 如果需要 handler 部分，那应该在 handlers 文件中，新建 main.yaml；其他类同。
@@ -305,7 +304,7 @@ vim backup.yaml
     temporary_store_directory: /tmp/matrix_bak/   # 必须带 /
     specify_directory_in_remote: MatrixServer
   roles:
-    - check_storage_space
+    - prepare_temp_store_dir
     - my_minio_client_role
     - matrix_backup
   tasks:
@@ -356,7 +355,7 @@ vim backup.yaml
     systemdservice_name_list: [minio]
     large_directory: "{{ imagebed_directory }}"
   roles:
-    - check_storage_space
+    - prepare_temp_store_dir
     - my_minio_client_role
     - systemd_backup
   tasks:
@@ -397,14 +396,14 @@ Docker 版的 WordPress
     - backup_flight_borne
   hosts: FlightBorneServer
   vars:
-    backup_file_name_prefix: wordpress_flight_borne_bak
+    backup_file_name: wordpress_flight_borne_bak
     temporary_store_directory: /tmp/flight_borne_bak   # 不能带 /
     specify_directory_in_remote: FlightBorneServer
     container_name_list: [wordpress, wp_mysql, wp_redis]
-    container_directory: "{{ ansible_env.HOME }}/myserve/wordpress"
-    large_directory: "{{ container_directory }}"
+    backup_directory: "{{ ansible_env.HOME }}/myserve/wordpress"
+    large_directory: "{{ backup_directory }}"
   roles:
-    - check_storage_space
+    - prepare_temp_store_dir
     - my_minio_client_role
     - docker_backup
   tasks:
@@ -448,7 +447,7 @@ vim backup.yaml
     mysql_dbname: nextcloud_db
     large_directory: "{{ nextcloud_directory }}"
   roles:
-    - check_storage_space
+    - prepare_temp_store_dir
     - my_minio_client_role
     - nextcloud_backup
   tasks:
