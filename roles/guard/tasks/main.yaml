@@ -1,0 +1,43 @@
+- name: Stop → Execute → Start
+  block:
+
+    - name: Stop service
+      include_tasks: "{{ playbook_dir }}/roles/{{ guard_impl }}/tasks/stop.yaml"
+
+    # ----------------------
+    # PRE HOOK (optional)
+    # ----------------------
+    - name: Check pre hook
+      stat:
+        path: "{{ playbook_dir }}/roles/{{ guard_impl }}/tasks/pre.yaml"
+      register: pre_hook
+
+    - name: Run pre hook
+      include_tasks: "{{ playbook_dir }}/roles/{{ guard_impl }}/tasks/pre.yaml"
+      when: pre_hook.stat.exists
+
+    # ----------------------
+    # PROTECTED ROLE
+    # ----------------------
+    - name: Execute protected role
+      include_role:
+        name: "{{ guarded_role_name }}"
+
+    # ----------------------
+    # POST HOOK (optional)
+    # ----------------------
+    - name: Check post hook
+      stat:
+        path: "{{ playbook_dir }}/roles/{{ guard_impl }}/tasks/post.yaml"
+      register: post_hook
+
+    - name: Run post hook
+      include_tasks: "{{ playbook_dir }}/roles/{{ guard_impl }}/tasks/post.yaml"
+      when: post_hook.stat.exists
+
+    - name: Start service
+      include_tasks: "{{ playbook_dir }}/roles/{{ guard_impl }}/tasks/start.yaml"
+
+  rescue:
+    - name: Ensure services are started after failure
+      include_tasks: "{{ playbook_dir }}/roles/{{ guard_impl }}/tasks/start.yaml"

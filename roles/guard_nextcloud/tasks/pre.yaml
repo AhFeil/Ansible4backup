@@ -1,0 +1,9 @@
+- name: Backup MySQL database
+  ansible.builtin.shell:
+    cmd: >
+      mysqldump --single-transaction
+      --default-character-set=utf8
+      -u {{ mysql_user }}
+      --password={{ mysql_password }}
+      {{ mysql_dbname }}
+      > {{ temporary_store_directory }}/_{{ backup_date }}_nextcloud-dump.sql

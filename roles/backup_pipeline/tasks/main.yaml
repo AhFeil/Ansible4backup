@@ -14,8 +14,9 @@
 
 - name: Package with Select guard protection
   include_role:
-    name: "guard_{{ guard_type }}"
+    name: guard
   vars:
+    guard_impl: "guard_{{ guard_type }}"
     guarded_role_name: package_by_tar
 
 - name: Upload and clear
