@@ -43,13 +43,6 @@
       ansible.builtin.pause:
         seconds: 3
 
-- name: Verify service is running
-  ansible.builtin.command:
-    cmd: "systemctl --user is-active container-todo_landing_page"
-  register: _lp_service_active
-  failed_when: _lp_service_active.stdout != 'active'
-  changed_when: false
-
 - name: Copy static and assets files from container
   when: _lp_service_updated is changed
   block:

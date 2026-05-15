@@ -27,23 +27,16 @@ def run_ansible_playbook(inventory, playbook, tags, ansible_venv_path, extra_var
     if extra_vars:
         command.extend(['-e', extra_vars])
 
-    try:
-        # 使用 subprocess.run 执行命令
-        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        # 打印输出结果
-        if result.stderr:
-            print("STDERR:", result.stderr)
-        # 检查命令是否成功执行
-        if result.returncode == 0:
-            return {"status": "success", "message": f"{tags} has been processed successfully."}
-        else:
-            return {"status": "false", "message": f"{tags} failed to be processed"}
-    except subprocess.CalledProcessError as e:
-        # 如果命令执行失败，subprocess.run 将抛出 CalledProcessError
-        print("An error occurred while running ansible-playbook.")
-        print(e.output)
-        return {"status": "false", "message": e.output}
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        return {
+            "status": "false",
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode
+        }
 
+    return {"status": "success", "stdout": result.stdout}
 
 class AnsibleRequest(BaseModel):
     inventory: str
@@ -62,6 +55,12 @@ def api_endpoint(request_body: AnsibleRequest, authorization: Annotated[str, Hea
         )
 
     result = run_ansible_playbook(request_body.inventory, request_body.playbook, request_body.tags, ansible_venv_path, request_body.extra_vars)
+
+    if result["status"] != "success":
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result
+        )
 
     return result
 
