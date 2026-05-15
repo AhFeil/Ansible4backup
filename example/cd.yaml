@@ -1,0 +1,18 @@
+
+- name: Install/Update todo tutorial
+  tags: [install_tutorial]
+  hosts: LocalServer
+  vars:
+    tutorial_download_url: http://1.2.3.4:7589/path/to/tutorial_archive.tar.gz
+    tutorial_download_user: vfly2
+    tutorial_download_password: 123456xx
+  roles:
+  - role: todo_tutorial
+
+- name: Update todo landing page
+  tags: [update_ld]
+  hosts: LocalServer
+  vars:
+    image_registry: git.vfly2.com/vfly2/todo_landing_page
+  roles:
+  - role: todo_tutorial

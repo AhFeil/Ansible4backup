@@ -1,0 +1,4 @@
+cd_hosts:
+  hosts:
+    LocalServer:
+      ansible_connection: local

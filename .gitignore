@@ -6,6 +6,9 @@ backup.yaml
 inventory.yaml
 xray.yaml
 roles/my_minio_client_role/vars/main.yml
+inventory4cd.yaml
+cd.yaml
+scheme.md
 
 # ---> Python
 # Byte-compiled / optimized / DLL files

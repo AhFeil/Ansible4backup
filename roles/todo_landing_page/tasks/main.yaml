@@ -1,0 +1,64 @@
+---
+- name: Check if landing page image exists locally
+  ansible.builtin.command:
+    cmd: "podman image exists {{ image_registry }}:{{ version }}"
+  register: _lp_image_exists
+  failed_when: false
+  changed_when: false
+
+- name: Pull landing page image
+  ansible.builtin.command:
+    cmd: "podman pull {{ image_registry }}:{{ version }}"
+  when: _lp_image_exists.rc != 0
+  changed_when: true
+
+- name: Update version in service file
+  ansible.builtin.replace:
+    path: "{{ ansible_env.HOME }}/todo/landing_page/container-todo_landing_page.service"
+    regexp: '({{ image_registry | regex_escape }}:)\S+'
+    replace: '\g<1>{{ version }}'
+  register: _lp_service_updated
+
+- name: Stop, reload, and restart landing page service
+  when: _lp_service_updated is changed
+  block:
+    - name: Stop landing page service
+      ansible.builtin.systemd:
+        name: container-todo_landing_page
+        state: stopped
+        scope: user
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+
+    - name: Start landing page service
+      ansible.builtin.systemd:
+        name: container-todo_landing_page
+        state: started
+        scope: user
+
+    - name: Wait for container to be ready
+      ansible.builtin.pause:
+        seconds: 3
+
+- name: Verify service is running
+  ansible.builtin.command:
+    cmd: "systemctl --user is-active container-todo_landing_page"
+  register: _lp_service_active
+  failed_when: _lp_service_active.stdout != 'active'
+  changed_when: false
+
+- name: Copy static and assets files from container
+  when: _lp_service_updated is changed
+  block:
+    - name: Copy static directory from container
+      ansible.builtin.command:
+        cmd: "podman cp todo_landing_page:/app/services/landing_page/static {{ ansible_env.HOME }}/todo/landing_page/"
+      changed_when: true
+
+    - name: Copy assets directory from container
+      ansible.builtin.command:
+        cmd: "podman cp todo_landing_page:/app/assets {{ ansible_env.HOME }}/todo/landing_page/"
+      changed_when: true

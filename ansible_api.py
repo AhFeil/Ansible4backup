@@ -1,6 +1,6 @@
 import os
 import subprocess
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import FastAPI, HTTPException, Header, status
 from pydantic import BaseModel
@@ -13,7 +13,7 @@ API_TOKEN = os.environ.get('ANSIBLE_API_TOKEN', 'pbDNh6HnihG9Hi9N2Y')
 ansible_venv_path = os.environ.get('ANSIBLE_VENV_PATH', '.env')
 
 
-def run_ansible_playbook(inventory, playbook, tags, ansible_venv_path):
+def run_ansible_playbook(inventory, playbook, tags, ansible_venv_path, extra_vars=None):
     # 指定虚拟环境中 ansible-playbook 的完整路径
     ansible_playbook_executable = f"{ansible_venv_path}/bin/ansible-playbook"
 
@@ -23,6 +23,9 @@ def run_ansible_playbook(inventory, playbook, tags, ansible_venv_path):
         playbook,
         '--tags={}'.format(tags)
     ]
+
+    if extra_vars:
+        command.extend(['-e', extra_vars])
 
     try:
         # 使用 subprocess.run 执行命令
@@ -46,6 +49,7 @@ class AnsibleRequest(BaseModel):
     inventory: str
     playbook: str
     tags: str
+    extra_vars: Optional[str] = None
 
 
 # 由于里面是阻塞的，所以不使用异步，而是用线程池进行
@@ -57,7 +61,7 @@ def api_endpoint(request_body: AnsibleRequest, authorization: Annotated[str, Hea
             detail="Invalid or missing API token"
         )
 
-    result = run_ansible_playbook(request_body.inventory, request_body.playbook, request_body.tags, ansible_venv_path)
+    result = run_ansible_playbook(request_body.inventory, request_body.playbook, request_body.tags, ansible_venv_path, request_body.extra_vars)
 
     return result
 
