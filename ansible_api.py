@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from typing import Annotated, Optional
 
@@ -11,6 +12,33 @@ app = FastAPI()
 # 通过环境变量传入 API Token 和 ansible 所在虚拟环境
 API_TOKEN = os.environ.get('ANSIBLE_API_TOKEN', 'pbDNh6HnihG9Hi9N2Y')
 ansible_venv_path = os.environ.get('ANSIBLE_VENV_PATH', '.env')
+
+
+def _parse_recap(stdout) -> dict | None:
+    """解析 PLAY RECAP 行，返回各字段计数的字典；未找到返回 None"""
+    lines = stdout.splitlines()
+    recap_seen = False
+    for line in lines:
+        if 'PLAY RECAP' in line:
+            recap_seen = True
+            continue
+        if recap_seen and 'unreachable=' in line and 'failed=' in line:
+            fields = ['ok', 'changed', 'unreachable', 'failed', 'skipped', 'rescued', 'ignored']
+            recap = {}
+            for field in fields:
+                m = re.search(rf'{field}=(\d+)', line)
+                if m:
+                    recap[field] = int(m.group(1))
+            if len(recap) == len(fields):
+                return recap
+    return None
+
+
+def _has_recap_failure(recap):
+    """根据解析后的 recap 判断是否有失败"""
+    if recap is None:
+        return True
+    return recap.get('unreachable', 0) > 0 or recap.get('failed', 0) > 0
 
 
 def run_ansible_playbook(inventory, playbook, tags, ansible_venv_path, extra_vars=None):
@@ -28,7 +56,8 @@ def run_ansible_playbook(inventory, playbook, tags, ansible_venv_path, extra_var
         command.extend(['-e', extra_vars])
 
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if result.returncode != 0:
+
+    if result.returncode != 0 or _has_recap_failure(_parse_recap(result.stdout)):
         return {
             "status": "false",
             "stdout": result.stdout,
