@@ -1,0 +1,7 @@
+- name: Update Gitea
+  tags:
+    - update_gitea
+  hosts:
+    - ZgoGServer
+  roles:
+    - update_gitea

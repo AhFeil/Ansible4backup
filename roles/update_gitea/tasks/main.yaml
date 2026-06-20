@@ -1,0 +1,94 @@
+---
+# 1. 获取最新版本号
+- name: Fetch latest version info from Gitea
+  ansible.builtin.uri:
+    url: https://dl.gitea.com/gitea/version.json
+    method: GET
+    return_content: yes
+  register: gitea_version_json
+
+- name: Set latest version
+  ansible.builtin.set_fact:
+    gitea_latest_version: "{{ gitea_version_json.json.latest.version }}"
+
+- name: Display latest version
+  ansible.builtin.debug:
+    msg: "Latest Gitea version: {{ gitea_latest_version }}"
+
+# 2. 获取本地已安装的版本
+- name: Get current Gitea version
+  ansible.builtin.command: /usr/local/bin/gitea --version
+  register: gitea_current_version_output
+  failed_when: false
+  changed_when: false
+
+- name: Parse current version
+  ansible.builtin.set_fact:
+    gitea_current_version: >-
+      {{ gitea_current_version_output.stdout
+         | regex_replace('.*gitea version ([0-9.]+).*', '\1') }}
+
+- name: Handle missing binary
+  ansible.builtin.set_fact:
+    gitea_current_version: "0.0.0"
+  when: gitea_current_version_output.rc != 0
+
+- name: Display current version
+  ansible.builtin.debug:
+    msg: "Current Gitea version: {{ gitea_current_version }}"
+
+# 3. 版本相同则跳过
+- name: Skip if already at latest version
+  ansible.builtin.debug:
+    msg: "Gitea is already at the latest version {{ gitea_latest_version }}, nothing to do."
+  when: gitea_current_version == gitea_latest_version
+
+- name: End play if already at latest version
+  ansible.builtin.meta: end_host
+  when: gitea_current_version == gitea_latest_version
+
+# 4. 执行升级
+- name: Upgrade Gitea
+  when: gitea_current_version != gitea_latest_version
+  block:
+    - name: Stop Gitea service
+      become: true
+      ansible.builtin.systemd:
+        name: gitea.service
+        state: stopped
+
+    - name: Backup old Gitea binary
+      become: true
+      ansible.builtin.copy:
+        src: /usr/local/bin/gitea
+        dest: /usr/local/bin/gitea.bak
+        remote_src: true
+        mode: preserve
+
+    - name: Download new Gitea binary
+      become: true
+      ansible.builtin.get_url:
+        url: "https://dl.gitea.com/gitea/{{ gitea_latest_version }}/gitea-{{ gitea_latest_version }}-linux-amd64"
+        dest: /usr/local/bin/gitea
+        mode: '0755'
+        force: true
+
+    - name: Start Gitea service
+      become: true
+      ansible.builtin.systemd:
+        name: gitea.service
+        state: started
+
+    - name: Wait briefly for service to stabilize
+      ansible.builtin.pause:
+        seconds: 1
+
+    - name: Check Gitea service status
+      become: true
+      ansible.builtin.systemd:
+        name: gitea.service
+      register: gitea_status
+
+    - name: Display service status
+      ansible.builtin.debug:
+        msg: "Gitea service status: {{ gitea_status.status.ActiveState }}"
