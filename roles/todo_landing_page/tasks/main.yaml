@@ -14,7 +14,7 @@
 
 - name: Update version in service file
   ansible.builtin.replace:
-    path: "{{ ansible_env.HOME }}/todo/landing_page/container-todo_landing_page.service"
+    path: "{{ ansible_facts.env.HOME }}/todo/landing_page/container-todo_landing_page.service"
     regexp: '({{ image_registry | regex_escape }}:)\S+'
     replace: '\g<1>{{ version }}'
   register: _lp_service_updated
@@ -48,10 +48,10 @@
   block:
     - name: Copy static directory from container
       ansible.builtin.command:
-        cmd: "podman cp todo_landing_page:/app/services/landing_page/static {{ ansible_env.HOME }}/todo/landing_page/"
+        cmd: "podman cp todo_landing_page:/app/services/landing_page/static {{ ansible_facts.env.HOME }}/todo/landing_page/"
       changed_when: true
 
     - name: Copy assets directory from container
       ansible.builtin.command:
-        cmd: "podman cp todo_landing_page:/app/assets {{ ansible_env.HOME }}/todo/landing_page/"
+        cmd: "podman cp todo_landing_page:/app/assets {{ ansible_facts.env.HOME }}/todo/landing_page/"
       changed_when: true

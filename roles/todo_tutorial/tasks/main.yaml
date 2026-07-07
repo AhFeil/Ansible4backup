@@ -1,25 +1,25 @@
 ---
 - name: Ensure todo directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/todo"
+    path: "{{ ansible_facts.env.HOME }}/todo"
     state: directory
     mode: '0755'
 
 - name: Download tutorial archive
   ansible.builtin.get_url:
     url: "{{ tutorial_download_url }}"
-    dest: "{{ ansible_env.HOME }}/todo/tutorial_archive.tar.gz"
+    dest: "{{ ansible_facts.env.HOME }}/todo/tutorial_archive.tar.gz"
     url_username: "{{ tutorial_download_user }}"
     url_password: "{{ tutorial_download_password }}"
     mode: '0644'
 
 - name: Extract tutorial archive
   ansible.builtin.unarchive:
-    src: "{{ ansible_env.HOME }}/todo/tutorial_archive.tar.gz"
-    dest: "{{ ansible_env.HOME }}/todo"
+    src: "{{ ansible_facts.env.HOME }}/todo/tutorial_archive.tar.gz"
+    dest: "{{ ansible_facts.env.HOME }}/todo"
     remote_src: true
 
 - name: Remove tutorial archive
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/todo/tutorial_archive.tar.gz"
+    path: "{{ ansible_facts.env.HOME }}/todo/tutorial_archive.tar.gz"
     state: absent

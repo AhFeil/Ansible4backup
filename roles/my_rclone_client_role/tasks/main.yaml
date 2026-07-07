@@ -3,13 +3,13 @@
 # ===============================
 - name: Ensure ~/.local/bin exists
   file:
-    path: "{{ ansible_env.HOME }}/.local/bin"
+    path: "{{ ansible_facts.env.HOME }}/.local/bin"
     state: directory
     mode: '0755'
 
 - name: Ensure ~/.local/bin is in PATH (.bashrc)
   lineinfile:
-    path: "{{ ansible_env.HOME }}/.bashrc"
+    path: "{{ ansible_facts.env.HOME }}/.bashrc"
     line: 'export PATH="$HOME/.local/bin:$PATH"'
     state: present
 
@@ -19,12 +19,12 @@
 # ===============================
 - name: Check if 'rclone' is installed (first check)
   stat:
-    path: "{{ ansible_env.HOME }}/.local/bin/rclone"
+    path: "{{ ansible_facts.env.HOME }}/.local/bin/rclone"
   register: rclone_installed
 
 
 - name: Check rclone version
-  command: "{{ ansible_env.HOME }}/.local/bin/rclone version"
+  command: "{{ ansible_facts.env.HOME }}/.local/bin/rclone version"
   register: rclone_version
   changed_when: false
   when: rclone_installed.stat.exists
@@ -61,8 +61,8 @@
 - name: Install rclone binary to ~/.local/bin
   shell: |
     set -e
-    mv /tmp/rclone-*-linux-amd64/rclone "{{ ansible_env.HOME }}/.local/bin/rclone"
-    chmod 0755 "{{ ansible_env.HOME }}/.local/bin/rclone"
+    mv /tmp/rclone-*-linux-amd64/rclone "{{ ansible_facts.env.HOME }}/.local/bin/rclone"
+    chmod 0755 "{{ ansible_facts.env.HOME }}/.local/bin/rclone"
   when: not rclone_installed.stat.exists
 
 
@@ -71,7 +71,7 @@
 # ===============================
 - name: Check if 'rclone' is installed (second check)
   stat:
-    path: "{{ ansible_env.HOME }}/.local/bin/rclone"
+    path: "{{ ansible_facts.env.HOME }}/.local/bin/rclone"
   register: rclone_installed
 
 - name: Fail if 'rclone' is still not installed after the attempt
@@ -84,7 +84,7 @@
 # 6. 读取已有 rclone remotes
 # ===============================
 - name: List existing rclone remotes
-  command: "{{ ansible_env.HOME }}/.local/bin/rclone listremotes"
+  command: "{{ ansible_facts.env.HOME }}/.local/bin/rclone listremotes"
   register: rclone_remotes
   changed_when: false
   failed_when: false
@@ -96,7 +96,7 @@
 # ===============================
 - name: Configure rclone WebDAV remote
   shell: >
-    {{ ansible_env.HOME }}/.local/bin/rclone config create {{ rclone_remote_name }} webdav
+    {{ ansible_facts.env.HOME }}/.local/bin/rclone config create {{ rclone_remote_name }} webdav
     url={{ rclone_webdav_url }}
     vendor={{ rclone_webdav_vendor }}
     user={{ rclone_webdav_user }}
@@ -110,7 +110,7 @@
 # 8. 测试 WebDAV remote
 # ===============================
 - name: Test rclone WebDAV configuration
-  command: "{{ ansible_env.HOME }}/.local/bin/rclone lsd {{ rclone_remote_name }}:"
+  command: "{{ ansible_facts.env.HOME }}/.local/bin/rclone lsd {{ rclone_remote_name }}:"
   register: rclone_test
   failed_when: rclone_test.rc != 0
   when: rclone_installed.stat.exists
@@ -145,7 +145,7 @@
 
 - name: Configure rclone crypt remote
   shell: >
-    {{ ansible_env.HOME }}/.local/bin/rclone config create {{ rclone_crypt_remote_name }} crypt
+    {{ ansible_facts.env.HOME }}/.local/bin/rclone config create {{ rclone_crypt_remote_name }} crypt
     remote={{ rclone_remote_name }}:{{ rclone_crypt_dir_name }}
     filename_encryption=off
     directory_name_encryption=false

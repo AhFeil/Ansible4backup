@@ -400,7 +400,7 @@ Docker 版的 WordPress
     temporary_store_directory: /tmp/flight_borne_bak   # 不能带 /
     specify_directory_in_remote: FlightBorneServer
     container_name_list: [wordpress, wp_mysql, wp_redis]
-    backup_directory: "{{ ansible_env.HOME }}/myserve/wordpress"
+    backup_directory: "{{ ansible_facts.env.HOME }}/myserve/wordpress"
     large_directory: "{{ backup_directory }}"
   roles:
     - prepare_temp_store_dir
