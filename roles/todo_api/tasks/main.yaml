@@ -1,0 +1,46 @@
+---
+- name: Get current image ID before pull
+  ansible.builtin.command:
+    cmd: "podman image inspect {{ image_registry }}:{{ version }} --format '{% raw %}{{.Id}}{% endraw %}'"
+  register: _image_before
+  ignore_errors: true
+  changed_when: false
+
+- name: Pull todo api image
+  ansible.builtin.command:
+    cmd: "podman pull {{ image_registry }}:{{ version }}"
+  changed_when: false
+
+- name: Get current image ID after pull
+  ansible.builtin.command:
+    cmd: "podman image inspect {{ image_registry }}:{{ version }} --format '{% raw %}{{.Id}}{% endraw %}'"
+  register: _image_after
+  changed_when: false
+
+- name: Set image updated fact
+  ansible.builtin.set_fact:
+    _image_updated: "{{ _image_before.stdout | default('') != _image_after.stdout }}"
+
+- name: Stop, reload, and restart todo api service
+  when: _image_updated | bool
+  block:
+    - name: Stop todo api service
+      ansible.builtin.systemd:
+        name: container-todo_api
+        state: stopped
+        scope: user
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+
+    - name: Start todo api service
+      ansible.builtin.systemd:
+        name: container-todo_api
+        state: started
+        scope: user
+
+    - name: Wait for container to be ready
+      ansible.builtin.pause:
+        seconds: 3
