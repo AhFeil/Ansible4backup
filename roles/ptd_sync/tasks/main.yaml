@@ -1,4 +1,10 @@
 ---
+- name: Login to Container Registry
+  containers.podman.podman_login:
+    registry: "{{ image_registry.split('/')[0] }}"
+    username: "{{ image_registry_user }}"
+    password: "{{ image_registry_token }}"
+
 - name: Check if ptd sync image exists locally
   ansible.builtin.command:
     cmd: "podman image exists {{ image_registry }}:{{ version }}"

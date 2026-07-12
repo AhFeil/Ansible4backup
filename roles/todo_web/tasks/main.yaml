@@ -1,4 +1,10 @@
 ---
+- name: Login to Container Registry
+  containers.podman.podman_login:
+    registry: "{{ image_registry.split('/')[0] }}"
+    username: "{{ image_registry_user }}"
+    password: "{{ image_registry_token }}"
+
 - name: Get current image ID before pull
   ansible.builtin.command:
     cmd: "podman image inspect {{ image_registry }}:{{ version }} --format '{% raw %}{{.Id}}{% endraw %}'"
